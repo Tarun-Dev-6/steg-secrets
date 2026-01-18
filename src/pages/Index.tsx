@@ -1,355 +1,153 @@
-import { useState, useCallback } from 'react';
-import { 
-  Upload, 
-  EyeOff, 
-  Eye, 
-  Volume2, 
-  Download,
-  Binary,
-  Info
-} from 'lucide-react';
-import { ImageUploader } from '@/components/ImageUploader';
-import { ImagePreview } from '@/components/ImagePreview';
-import { BinaryDisplay } from '@/components/BinaryDisplay';
-import { StatusMessage } from '@/components/StatusMessage';
-import {
-  convertToGrayscale,
-  resizeImage,
-  hideCharacter,
-  extractCharacter,
-  imageDataToDataURL,
-  charToBinary
-} from '@/lib/steganography';
-import { speakText, isSpeechSynthesisSupported } from '@/lib/textToSpeech';
-
-const TARGET_SIZE = 256;
+import { Link } from 'react-router-dom';
+import { EyeOff, Eye, Binary, ArrowRight, Shield, Zap, Volume2 } from 'lucide-react';
+import { Layout } from '@/components/Layout';
 
 export default function Index() {
-  // Image states
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [grayscaleImage, setGrayscaleImage] = useState<string | null>(null);
-  const [stegoImage, setStegoImage] = useState<string | null>(null);
-  const [grayscaleImageData, setGrayscaleImageData] = useState<ImageData | null>(null);
-  const [stegoImageData, setStegoImageData] = useState<ImageData | null>(null);
-
-  // Input states
-  const [characterToHide, setCharacterToHide] = useState('');
-  
-  // Output states
-  const [hiddenBinary, setHiddenBinary] = useState<string | null>(null);
-  const [extractedChar, setExtractedChar] = useState<string | null>(null);
-  const [extractedBinary, setExtractedBinary] = useState<string | null>(null);
-  
-  // Status states
-  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  // Handle image upload
-  const handleImageLoad = useCallback((canvas: HTMLCanvasElement) => {
-    // Store original
-    setOriginalImage(canvas.toDataURL());
-    
-    // Resize to 256x256
-    const resizedData = resizeImage(canvas, TARGET_SIZE, TARGET_SIZE);
-    
-    // Convert to grayscale
-    const grayData = convertToGrayscale(resizedData);
-    setGrayscaleImageData(grayData);
-    setGrayscaleImage(imageDataToDataURL(grayData));
-    
-    // Reset states
-    setStegoImage(null);
-    setStegoImageData(null);
-    setHiddenBinary(null);
-    setExtractedChar(null);
-    setExtractedBinary(null);
-    setStatus({ type: 'success', message: 'Image loaded, converted to grayscale, and resized to 256×256' });
-  }, []);
-
-  // Hide character in image
-  const handleHideCharacter = useCallback(() => {
-    if (!grayscaleImageData) {
-      setStatus({ type: 'error', message: 'Please upload an image first' });
-      return;
+  const features = [
+    {
+      icon: Shield,
+      title: 'LSB Steganography',
+      description: 'Hide data in the least significant bits of image pixels, making changes imperceptible to human eyes.'
+    },
+    {
+      icon: Zap,
+      title: 'Instant Processing',
+      description: 'All encoding and decoding happens locally in your browser with no server uploads required.'
+    },
+    {
+      icon: Volume2,
+      title: 'Text-to-Speech',
+      description: 'Listen to extracted characters using the built-in Web Speech API for accessibility.'
     }
-
-    if (!characterToHide || characterToHide.length !== 1) {
-      setStatus({ type: 'error', message: 'Please enter exactly one character to hide' });
-      return;
-    }
-
-    const result = hideCharacter(grayscaleImageData, characterToHide);
-    
-    if (result.success && result.imageData) {
-      setStegoImageData(result.imageData);
-      setStegoImage(imageDataToDataURL(result.imageData));
-      setHiddenBinary(result.binaryRepresentation || null);
-      setStatus({ type: 'success', message: result.message });
-    } else {
-      setStatus({ type: 'error', message: result.message });
-    }
-  }, [grayscaleImageData, characterToHide]);
-
-  // Extract hidden character
-  const handleExtractCharacter = useCallback(() => {
-    if (!stegoImageData) {
-      setStatus({ type: 'error', message: 'Please create a stego image first by hiding a character' });
-      return;
-    }
-
-    const result = extractCharacter(stegoImageData);
-    
-    if (result.success) {
-      setExtractedChar(result.extractedChar || null);
-      setExtractedBinary(result.binaryRepresentation || null);
-      setStatus({ type: 'success', message: result.message });
-    } else {
-      setStatus({ type: 'error', message: result.message });
-    }
-  }, [stegoImageData]);
-
-  // Speak extracted character
-  const handleSpeak = useCallback(async () => {
-    if (!extractedChar) {
-      setStatus({ type: 'error', message: 'Please extract a character first' });
-      return;
-    }
-
-    if (!isSpeechSynthesisSupported()) {
-      setStatus({ type: 'error', message: 'Text-to-speech is not supported in your browser' });
-      return;
-    }
-
-    setIsSpeaking(true);
-    const result = await speakText(extractedChar);
-    setIsSpeaking(false);
-    
-    if (!result.success) {
-      setStatus({ type: 'error', message: result.message });
-    }
-  }, [extractedChar]);
-
-  // Download stego image
-  const handleDownload = useCallback(() => {
-    if (!stegoImage) return;
-    
-    const link = document.createElement('a');
-    link.download = 'stego-image.png';
-    link.href = stegoImage;
-    link.click();
-  }, [stegoImage]);
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Binary className="w-5 h-5 text-primary" />
+    <Layout>
+      {/* Hero Section */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
+              <Binary className="w-4 h-4" />
+              Academic Project
             </div>
-            <div>
-              <h1 className="text-2xl font-bold gradient-text">
-                Image Steganography
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                LSB-based character hiding and extraction
-              </p>
+            
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-slide-up">
+              <span className="gradient-text">Image Steganography</span>
+              <br />
+              <span className="text-foreground">Made Simple</span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 animate-slide-up">
+              Hide secret characters within images using Least Significant Bit (LSB) encoding. 
+              A visual demonstration of digital steganography concepts.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up">
+              <Link to="/encode" className="btn-primary w-full sm:w-auto">
+                <EyeOff className="w-5 h-5" />
+                Encode Message
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link to="/decode" className="btn-secondary w-full sm:w-auto">
+                <Eye className="w-5 h-5" />
+                Decode Message
+              </Link>
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          
-          {/* Info Banner */}
-          <div className="card-elevated p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">How it works</p>
-              <p>
-                This application uses <span className="text-primary font-medium">Least Significant Bit (LSB)</span> steganography 
-                to hide a single character within a grayscale image. The character's 8-bit binary representation 
-                is embedded in the least significant bits of the first 8 pixels, making the modification imperceptible.
-              </p>
+      {/* Features Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
+              How It Works
+            </h2>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              {features.map((feature, index) => (
+                <div 
+                  key={feature.title}
+                  className="card-elevated p-6 text-center animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <feature.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                </div>
+              ))}
             </div>
           </div>
-
-          {/* Status Message */}
-          {status && (
-            <StatusMessage type={status.type} message={status.message} />
-          )}
-
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left Column - Input */}
-            <div className="space-y-6">
-              {/* Image Upload Section */}
-              <section className="card-elevated p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-primary" />
-                  Upload Image
-                </h2>
-                <ImageUploader onImageLoad={handleImageLoad} />
-              </section>
-
-              {/* Character Input Section */}
-              <section className="card-elevated p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <EyeOff className="w-5 h-5 text-primary" />
-                  Hide Character
-                </h2>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="character" className="block text-sm font-medium text-muted-foreground mb-2">
-                      Enter a single character to hide
-                    </label>
-                    <input
-                      id="character"
-                      type="text"
-                      maxLength={1}
-                      value={characterToHide}
-                      onChange={(e) => setCharacterToHide(e.target.value)}
-                      placeholder="e.g., A"
-                      className="w-full px-4 py-3 rounded-lg border border-input bg-background text-center text-2xl font-mono font-bold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-                    />
-                  </div>
-
-                  {characterToHide && (
-                    <div className="text-sm text-muted-foreground">
-                      Binary: <span className="font-mono text-primary">{charToBinary(characterToHide)}</span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleHideCharacter}
-                    disabled={!grayscaleImage || !characterToHide}
-                    className="btn-primary w-full"
-                  >
-                    <EyeOff className="w-4 h-4" />
-                    Hide Character in Image
-                  </button>
-                </div>
-              </section>
-
-              {/* Extract Section */}
-              <section className="card-elevated p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-primary" />
-                  Extract Character
-                </h2>
-
-                <div className="space-y-4">
-                  <button
-                    onClick={handleExtractCharacter}
-                    disabled={!stegoImage}
-                    className="btn-secondary w-full"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Extract Hidden Character
-                  </button>
-
-                  <button
-                    onClick={handleSpeak}
-                    disabled={!extractedChar || isSpeaking}
-                    className="btn-secondary w-full"
-                  >
-                    <Volume2 className={`w-4 h-4 ${isSpeaking ? 'animate-pulse' : ''}`} />
-                    {isSpeaking ? 'Speaking...' : 'Speak Character'}
-                  </button>
-                </div>
-
-                {extractedChar && (
-                  <div className="mt-4">
-                    <BinaryDisplay
-                      binary={extractedBinary}
-                      character={extractedChar}
-                      label="Extracted Data"
-                    />
-                  </div>
-                )}
-              </section>
-            </div>
-
-            {/* Right Column - Output */}
-            <div className="space-y-6">
-              {/* Image Previews */}
-              <section className="card-elevated p-6">
-                <h2 className="text-lg font-semibold mb-6">Image Preview</h2>
-                
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <ImagePreview
-                    title="Grayscale (256×256)"
-                    imageSrc={grayscaleImage}
-                    size={200}
-                  />
-                  <ImagePreview
-                    title="Stego Image"
-                    imageSrc={stegoImage}
-                    size={200}
-                  />
-                </div>
-
-                {stegoImage && (
-                  <button
-                    onClick={handleDownload}
-                    className="btn-secondary w-full mt-6"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download Stego Image
-                  </button>
-                )}
-              </section>
-
-              {/* Hidden Data Display */}
-              {hiddenBinary && (
-                <section className="card-elevated p-6 animate-slide-up">
-                  <h2 className="text-lg font-semibold mb-4">Hidden Data</h2>
-                  <BinaryDisplay
-                    binary={hiddenBinary}
-                    character={characterToHide}
-                    label="Character Hidden in Image"
-                  />
-                </section>
-              )}
-
-              {/* Algorithm Explanation */}
-              <section className="card-elevated p-6">
-                <h2 className="text-lg font-semibold mb-4">Algorithm Details</h2>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">1</span>
-                    <p>Image is converted to <strong className="text-foreground">grayscale</strong> and resized to 256×256 pixels.</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">2</span>
-                    <p>Input character is converted to <strong className="text-foreground">8-bit binary</strong> representation (ASCII).</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">3</span>
-                    <p>Each bit is hidden in the <strong className="text-foreground">LSB of first 8 pixels</strong>, changing value by at most ±1.</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">4</span>
-                    <p>Extraction reads <strong className="text-foreground">LSBs</strong> from first 8 pixels and converts back to character.</p>
-                  </div>
-                </div>
-              </section>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <footer className="text-center text-sm text-muted-foreground py-8 border-t border-border">
-            <p>
-              Academic Project: LSB Image Steganography with Text-to-Speech
-            </p>
-            <p className="mt-1">
-              Built with React, TypeScript, Canvas API, and Web Speech API
-            </p>
-          </footer>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Algorithm Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="card-elevated p-8">
+              <h2 className="text-2xl font-bold mb-6 text-center">The LSB Algorithm</h2>
+              
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <EyeOff className="w-5 h-5 text-primary" />
+                    Encoding Process
+                  </h3>
+                  <ol className="space-y-3 text-sm text-muted-foreground">
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">1</span>
+                      <span>Convert image to <strong className="text-foreground">grayscale</strong> and resize to 256×256</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">2</span>
+                      <span>Convert character to <strong className="text-foreground">8-bit binary</strong> (ASCII)</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">3</span>
+                      <span>Replace <strong className="text-foreground">LSB of each pixel</strong> with message bit</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">4</span>
+                      <span>Save the modified <strong className="text-foreground">stego image</strong></span>
+                    </li>
+                  </ol>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-primary" />
+                    Decoding Process
+                  </h3>
+                  <ol className="space-y-3 text-sm text-muted-foreground">
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center">1</span>
+                      <span>Load the <strong className="text-foreground">stego image</strong></span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center">2</span>
+                      <span>Extract <strong className="text-foreground">LSB from first 8 pixels</strong></span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center">3</span>
+                      <span>Combine bits to form <strong className="text-foreground">8-bit binary</strong></span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center">4</span>
+                      <span>Convert binary to <strong className="text-foreground">ASCII character</strong></span>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </Layout>
   );
 }
